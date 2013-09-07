@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 {
 	int *a, key, location;
 
-	int length = 10;
+	int length = 12;
 	int seed;
 	int range = 256;
 
@@ -22,9 +22,11 @@ int main(int argc, char **argv)
 	print_array(a, length);
 	key = a[0];
 
-	heap_sort(a, length, 1);
+	heap_init(a, length, 1);
 	print_array(a, length);
 
+	heap_sort(&a, length, 1);
+	print_array(a, length);
 //	location = binary_search(a, key);
 
 	printf("%d is at %d\n", key, location);

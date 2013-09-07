@@ -10,7 +10,7 @@ void swap(int *array, int a, int b)
 void heap_adjust(int *array, int pos, int length, int min)
 {
 	int left, right;
-	int candidate;
+	int candidate = pos;
 
 	left = pos * 2 + 1;
 	right = pos * 2 + 2;
@@ -31,9 +31,11 @@ void heap_adjust(int *array, int pos, int length, int min)
 		return;
 
 	swap(array, pos, candidate);
+
+	heap_adjust(array, candidate, length, min);
 }
 
-void heap_sort(int *array, int length, int min)
+void heap_init(int *array, int length, int min)
 {
 	int i;
 
@@ -41,4 +43,36 @@ void heap_sort(int *array, int length, int min)
 		heap_adjust(array, i, length, min);
 	}
 }
-	
+
+int extract_heap_root(int *array, int length, int min)
+{
+	int ret = array[0];
+
+	swap(array, 0, length - 1);
+	heap_adjust(array, 0, length - 1, min);
+
+	return ret;
+}
+
+int heap_sort(int **array, int length, int min)
+{
+	int *b = malloc(length * sizeof(int));
+	int i;
+	int temp_len = length;
+
+	if (!b)
+		return -1;
+
+	for (i = 0; i < length; i++) {
+		b[i] = extract_heap_root(*array, temp_len, min);
+		temp_len--;
+	}
+
+	free_array(*array);
+	*array = b;
+
+	return 0;
+}
+
+
+
