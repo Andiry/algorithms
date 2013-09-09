@@ -6,7 +6,7 @@ int * format_random_array(int length, int seed, int range)
 	if (length <= 0)
 		return NULL;
 
-	array = malloc(length * sizeof(int));
+	array = static_cast<int*>(malloc(length * sizeof(int)));
 	if (!array)
 		return NULL;
 

@@ -1,12 +1,4 @@
 
-void swap(int *array, int a, int b)
-{
-	int temp = array[a];
-
-	array[a] = array[b];
-	array[b] = temp;
-}
-
 void heap_adjust(int *array, int pos, int length, int min)
 {
 	int left, right;
@@ -56,7 +48,7 @@ int extract_heap_root(int *array, int length, int min)
 
 int heap_sort(int **array, int length, int min)
 {
-	int *b = malloc(length * sizeof(int));
+	int *b = static_cast<int*>(malloc(length * sizeof(int)));
 	int i;
 	int temp_len = length;
 
@@ -74,5 +66,16 @@ int heap_sort(int **array, int length, int min)
 	return 0;
 }
 
+void heap_insert(int *heap, int value, int length, int min)
+{
+	int root = heap[0];
 
+	if ((min && value <= root) || (!min && value >= root))
+		return;
+
+	heap[0] = value;
+	heap_adjust(heap, 0, length, min);
+
+	return;
+}
 
