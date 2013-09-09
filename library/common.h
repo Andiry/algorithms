@@ -1,7 +1,7 @@
-
-void swap(int *array, int a, int b)
+template <class T>
+void swap(T *array, int a, int b)
 {
-	int temp = array[a];
+	T temp = array[a];
 
 	array[a] = array[b];
 	array[b] = temp;
