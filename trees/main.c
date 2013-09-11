@@ -11,6 +11,7 @@ int main(int argc, char **argv)
 	int length = 12;
 	int seed, ret;
 	int range = 256;
+	std::vector<struct node *>path_v;
 
 	if (argc < 2)
 		seed = 124;
@@ -24,6 +25,8 @@ int main(int argc, char **argv)
 	layer_tree(root);
 	midorder_tree(root);
 	preorder_tree(root);
+	postorder_tree(root);
+	find_path(root, 12, path_v);
 
 out:
 	free_tree(root);

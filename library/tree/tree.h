@@ -1,5 +1,6 @@
 #include<deque>
 #include<stack>
+#include<vector>
 
 using namespace std;
 
@@ -85,24 +86,13 @@ void preorder_tree(struct node * root)
 void postorder_tree(struct node * root)
 {
 	struct node * p = root;
-	std::stack<struct node *> stack;
 
-	printf("Postorder:\n");
-	while(!stack.empty() || p) {
+	if (!p)
+		return;
 
-		if (p) {
-			stack.push(p);
-			if (p->right)
-				stack.push(p->right);
-			else if (p->left)
-				stack.push(p->left);
-		} else {
-			p = stack.top();
-			stack.pop();
-			printf("%d\t", p->value);
-		}
-	}
-	printf("\n");
+	postorder_tree(p->left);
+	postorder_tree(p->right);
+	printf("%d\t", p->value);
 }
 
 void layer_tree(struct node * root)
@@ -128,4 +118,27 @@ void layer_tree(struct node * root)
 			queue.push_back(temp->right);
 	}
 	printf("\n");
+}
+
+void find_path(struct node *p, int value, vector<struct node*> &path_v)
+{
+	if (!p)
+		return;
+
+	path_v.push_back(p);
+
+	if (p->value == value) {
+		vector<struct node*>::iterator iter;
+		printf("Path to %d: ", value);
+		for (iter = path_v.begin(); iter != path_v.end(); ++iter) {
+			printf("%d ", (*iter)->value);
+		}
+		printf("\n");
+		return;
+	}
+
+	find_path(p->left, value, path_v);
+	find_path(p->right, value, path_v);
+	path_v.pop_back();
+
 }
