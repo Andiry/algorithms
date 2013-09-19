@@ -86,13 +86,31 @@ void preorder_tree(struct node * root)
 void postorder_tree(struct node * root)
 {
 	struct node * p = root;
+	std::stack<struct node *> stack1, stack2;
 
 	if (!p)
 		return;
+	printf("Postorder:\n");
+	stack1.push(p);
 
-	postorder_tree(p->left);
-	postorder_tree(p->right);
-	printf("%d\t", p->value);
+	while(!stack1.empty()) {
+		p = stack1.top();
+		stack2.push(p);
+		stack1.pop();
+	
+		if (p->left)
+			stack1.push(p->left);
+		if (p->right)
+			stack1.push(p->right);
+	}
+
+	while(!stack2.empty()) {
+		p = stack2.top();
+		stack2.pop();
+		printf("%d\t", p->value);
+	}
+
+	printf("\n");
 }
 
 void layer_tree(struct node * root)
