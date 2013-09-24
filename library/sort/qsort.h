@@ -1,5 +1,5 @@
 
-int partition(int *array, int start, int end)
+int partition1(int *array, int start, int end)
 {
 	int sentry = array[start];
 
@@ -18,6 +18,24 @@ int partition(int *array, int start, int end)
 	array[start] = sentry;
 
 //	print_array(array, length);
+	return start;
+}
+
+int partition(int *array, int start, int end)
+{
+	int sentry = array[end];
+	int pos = start;
+
+	while(pos < end) {
+		if (array[pos] < sentry) {
+			swap(array, start, pos);
+			start++;
+		}
+		pos++;
+	}
+
+	swap(array, start, end);
+
 	return start;
 }
 
