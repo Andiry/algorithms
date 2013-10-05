@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 
+#include"../library/common.h"
 #include"../library/array/array.h"
 #include"../library/sort/heap.h"
 #include"../library/search/binary_search.h"
