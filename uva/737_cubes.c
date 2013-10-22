@@ -1,15 +1,10 @@
 #include<stdio.h>
+#include<math.h>
 
 #define MAX (1 << 30)
-inline int max(int a, int b)
-{
-	return(a > b ? a : b);
-}
 
-inline int min(int a, int b)
-{
-	return(a < b ? a : b);
-}
+#define min(x, y) ((x) < (y) ? (x) : (y))
+#define max(x, y) ((x) > (y) ? (x) : (y))
 
 void process(int *a, int *b)
 {
@@ -19,11 +14,9 @@ void process(int *a, int *b)
 
 	for (i = 0; i < 6; i++) {
 		if (i % 2 == 0)
-			f = max;
+			b[i] = max(a[i], b[i]);
 		else
-			f = min;
-
-		b[i] = f(a[i], b[i]);
+			b[i] = min(a[i], b[i]);
 
 		if ((i % 2 == 1) && (b[i] <= b[i - 1]))
 			b[i] = b[i - 1] = 0;
