@@ -14,6 +14,7 @@ struct cuckoo {
 	unsigned long size;
 };
 
+#define	PAGE_SIZE		4096
 #define	SLOTS_PER_INTERNAL	512
 #define INTERNAL_BITS		9
 struct cuckoo_internal {
@@ -26,12 +27,12 @@ struct cuckoo_slot {
 
 #define TAG_LEN		16
 #define TAG_MASK	((1UL << TAG_LEN) - 1)
-#define BLOCK_MASK	((1UL << (64 -TAG_LEN)) - 1)
+#define VALUE_MASK	((1UL << (64 - TAG_LEN)) - 1)
 #define GET_TAG(p)	(((p) >> (64 - TAG_LEN)) & TAG_MASK)
-#define GET_BLOCK(p)	((p) & BLOCK_MASK)
+#define GET_VALUE(p)	((p) & VALUE_MASK)
 
-static inline unsigned long format_obj(unsigned long tag, unsigned long block) {
-	return block | (tag << (64 - TAG_LEN));
+static inline unsigned long format_obj(unsigned long tag, unsigned long value) {
+	return (value & VALUE_MASK) | (tag << (64 - TAG_LEN));
 }
 
 #define	SLOTS_PER_LEAF	128
