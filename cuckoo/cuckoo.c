@@ -66,19 +66,14 @@ static struct cuckoo_slot * find_slot(struct cuckoo *cuckoo,
 }
 
 static unsigned long find_value(struct cuckoo_slot *slot,
-	unsigned long hashcode)
+	unsigned int target_tag)
 {
 	unsigned long value;
 	unsigned int tag;
-	unsigned int target_tag = hashcode & TAG_MASK;
 	int i;
 
 	if (!slot)
 		return 0;
-
-	/* Tag must be non-zero */
-	if (target_tag == 0)
-		target_tag = 1;
 
 	for (i = 0; i < 4; i++) {
 		value = slot->objs[i];
@@ -95,7 +90,8 @@ static unsigned long find_value(struct cuckoo_slot *slot,
 unsigned long cuckoo_lookup(struct cuckoo *cuckoo, const char *path,
 	int length)
 {
-	unsigned long hashcode1, hashcode2;
+	unsigned long hashcode, hashcode1, hashcode2;
+	unsigned int tag;
 	void* root = cuckoo->root;
 	int level = cuckoo->level;
 	struct cuckoo_slot *slot = NULL;
@@ -106,17 +102,25 @@ unsigned long cuckoo_lookup(struct cuckoo *cuckoo, const char *path,
 
 	hashcode1 = hash_func1(path, length);
 	hashcode2 = hash_func2(path, length);
+	tag = hashcode2 & TAG_MASK;
 
-	slot = find_slot(cuckoo, hashcode1);
+	/* Tag must be non-zero */
+	if (tag == 0)
+		tag = 1;
+
+	hashcode = hashcode1;
+	slot = find_slot(cuckoo, hashcode);
 	if (slot) {
-		ret = find_value(slot, hashcode2);
+		ret = find_value(slot, tag);
 		if (ret)
 			return ret;
 	}
 
-	slot = find_slot(cuckoo, hashcode2);
+	/* Check alternate slot */
+	hashcode = hashcode1 ^ tag;
+	slot = find_slot(cuckoo, hashcode);
 	if (slot) {
-		ret = find_value(slot, hashcode1);
+		ret = find_value(slot, tag);
 		if (ret)
 			return ret;
 	}
