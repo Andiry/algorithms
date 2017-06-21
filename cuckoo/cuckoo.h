@@ -9,7 +9,7 @@ typedef unsigned long u64;
 
 struct cuckoo {
 	void *root;
-	int level;
+	int height;
 	unsigned long count;
 	unsigned long size;
 };

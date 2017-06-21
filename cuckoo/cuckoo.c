@@ -36,7 +36,7 @@ static struct cuckoo_slot * find_slot(struct cuckoo *cuckoo,
 {
 	void *root = cuckoo->root;
 	void *parent = NULL;
-	int cur_level = cuckoo->level;
+	int cur_height = cuckoo->height;
 	struct cuckoo_internal *internal;
 	struct cuckoo_leaf *leaf;
 	struct cuckoo_slot *slot = NULL;
@@ -47,7 +47,7 @@ static struct cuckoo_slot * find_slot(struct cuckoo *cuckoo,
 	if (!root)
 		return NULL;
 
-	while (cur_level) {
+	while (cur_height) {
 		if (!root) {
 			if (allocate == 0)
 				return NULL;
@@ -64,7 +64,7 @@ static struct cuckoo_slot * find_slot(struct cuckoo *cuckoo,
 		}
 
 		/* Leaf node */
-		if (cur_level == 1) {
+		if (cur_height == 1) {
 			leaf = (struct cuckoo_leaf *)root;
 			index = hashcode & (SLOTS_PER_LEAF - 1);
 			slot = &(leaf->slots[index]);
@@ -73,11 +73,11 @@ static struct cuckoo_slot * find_slot(struct cuckoo *cuckoo,
 
 		/* Internal node */
 		internal = (struct cuckoo_internal *)root;
-		right_bits = LEAF_BITS + (cur_level - 2) * INTERNAL_BITS;
+		right_bits = LEAF_BITS + (cur_height - 2) * INTERNAL_BITS;
 		index = (hashcode >> right_bits) & (SLOTS_PER_INTERNAL - 1);
 		parent = root;
 		root = (void *)internal->pointers[index];
-		cur_level--;
+		cur_height--;
 	}
 
 	return slot;
@@ -136,11 +136,11 @@ static unsigned long cuckoo_lookup_delete(struct cuckoo *cuckoo,
 	unsigned long hashcode, hashcode1, hashcode2;
 	unsigned int tag;
 	void* root = cuckoo->root;
-	int level = cuckoo->level;
+	int height = cuckoo->height;
 	struct cuckoo_slot *slot = NULL;
 	unsigned long ret;
 
-	if (root == NULL || level == 0)
+	if (root == NULL || height == 0)
 		return 0;
 
 	hashcode1 = hash_func1(key, length);
@@ -190,14 +190,14 @@ static int cuckoo_expand(struct cuckoo *cuckoo)
 {
 	struct cuckoo_internal *new_root;
 
-	if (cuckoo->level == 0) {
+	if (cuckoo->height == 0) {
 		cuckoo->root = malloc(sizeof(struct cuckoo_leaf));
 		if (!cuckoo->root)
 			return -ENOMEM;
 
 		memset(cuckoo->root, 0, sizeof(struct cuckoo_leaf));
 		cuckoo->size = 512;
-		cuckoo->level = 1;
+		cuckoo->height = 1;
 	} else {
 		new_root = malloc(sizeof(struct cuckoo_internal));
 		if (!new_root)
@@ -207,7 +207,7 @@ static int cuckoo_expand(struct cuckoo *cuckoo)
 		new_root->pointers[0] = (u64)cuckoo->root;
 		cuckoo->root = new_root;
 		cuckoo->size *= 512;
-		cuckoo->level++;
+		cuckoo->height++;
 	}
 
 	/* FIXME: rehash */
@@ -290,8 +290,6 @@ int cuckoo_insert(struct cuckoo *cuckoo, const char *key,
 	struct cuckoo_slot *slot1 = NULL, *slot2 = NULL;
 	unsigned long hashcode, hashcode1, hashcode2;
 	unsigned int tag;
-	void* root = cuckoo->root;
-	int level = cuckoo->level;
 	int count;
 	unsigned long ret;
 
@@ -332,19 +330,19 @@ struct cuckoo *new_cuckoo(void) {
 	ret->root = NULL;
 	ret->size = 0;
 	ret->count = 0;
-	ret->level = 0;
+	ret->height = 0;
 
 	return ret;
 }
 
-static void cuckoo_free_tree(void *root, int level) {
+static void cuckoo_free_tree(void *root, int height) {
 	struct cuckoo_internal *node;
 	int i;
 
-	if (!root || level == 0)
+	if (!root || height == 0)
 		return;
 
-	if (level == 1) {
+	if (height == 1) {
 		/* Leaf */
 		free(root);
 		return;
@@ -353,15 +351,14 @@ static void cuckoo_free_tree(void *root, int level) {
 	/* Internal node */
 	node = (struct cuckoo_internal *)root;
 	for (i = 0; i < 512; i++)
-		cuckoo_free_tree((void *)node->pointers[i], level - 1);
+		cuckoo_free_tree((void *)node->pointers[i], height - 1);
 
 	free(root);
 }
 
 void free_cuckoo(struct cuckoo *cuckoo) {
-	cuckoo_free_tree(cuckoo->root, cuckoo->level);
+	cuckoo_free_tree(cuckoo->root, cuckoo->height);
 	
 	free(cuckoo);
 }
 
-	
