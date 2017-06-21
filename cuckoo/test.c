@@ -13,6 +13,11 @@ int main(void) {
 
 	printf("Key: %s, Value: %lu\n", key, value);
 
+	cuckoo_delete(cuckoo, key, strlen(key));
+	value = cuckoo_lookup(cuckoo, key, strlen(key));
+
+	printf("Key: %s, Value: %lu\n", key, value);
+
 	free_cuckoo(cuckoo);
 
 	return 0;

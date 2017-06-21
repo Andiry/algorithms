@@ -105,8 +105,32 @@ static unsigned long find_value(struct cuckoo_slot *slot,
 	return 0;
 }
 
-unsigned long cuckoo_lookup(struct cuckoo *cuckoo, const char *key,
-	int length)
+static unsigned long clear_tag(struct cuckoo_slot *slot,
+	unsigned int target_tag)
+{
+	unsigned long value;
+	unsigned int tag;
+	int i;
+
+	if (!slot)
+		return 0;
+
+	for (i = 0; i < 4; i++) {
+		value = slot->objs[i];
+		tag = GET_TAG(value);
+		if (tag == target_tag) {
+			/* FIXME: Check real value */
+			slot->objs[i] = 0;
+			break;
+		}
+	}
+
+	return 0;
+}
+
+static unsigned long cuckoo_lookup_delete(struct cuckoo *cuckoo,
+	unsigned long (*p)(struct cuckoo_slot *, unsigned int),
+	const char *key, int length)
 {
 	unsigned long hashcode, hashcode1, hashcode2;
 	unsigned int tag;
@@ -129,7 +153,7 @@ unsigned long cuckoo_lookup(struct cuckoo *cuckoo, const char *key,
 	hashcode = hashcode1;
 	slot = find_slot(cuckoo, hashcode, 0);
 	if (slot) {
-		ret = find_value(slot, tag);
+		ret = p(slot, tag);
 		if (ret)
 			return ret;
 	}
@@ -138,12 +162,24 @@ unsigned long cuckoo_lookup(struct cuckoo *cuckoo, const char *key,
 	hashcode = hashcode1 ^ tag;
 	slot = find_slot(cuckoo, hashcode, 0);
 	if (slot) {
-		ret = find_value(slot, tag);
+		ret = p(slot, tag);
 		if (ret)
 			return ret;
 	}
 
 	return 0;
+}
+
+unsigned long cuckoo_lookup(struct cuckoo *cuckoo, const char *key,
+	int length)
+{
+	return cuckoo_lookup_delete(cuckoo, &find_value, key, length);
+}
+
+unsigned long cuckoo_delete(struct cuckoo *cuckoo, const char *key,
+	int length)
+{
+	return cuckoo_lookup_delete(cuckoo, &clear_tag, key, length);
 }
 
 /*

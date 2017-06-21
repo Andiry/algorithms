@@ -46,6 +46,8 @@ struct cuckoo_leaf {
 /* Function prototypes */
 unsigned long cuckoo_lookup(struct cuckoo *cuckoo, const char *key,
 	int length);
+unsigned long cuckoo_delete(struct cuckoo *cuckoo, const char *key,
+	int length);
 int cuckoo_insert(struct cuckoo *cuckoo, const char *key,
 	int length, unsigned long value);
 struct cuckoo *new_cuckoo(void);
