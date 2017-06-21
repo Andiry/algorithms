@@ -105,7 +105,7 @@ static unsigned long find_value(struct cuckoo_slot *slot,
 	return 0;
 }
 
-unsigned long cuckoo_lookup(struct cuckoo *cuckoo, const char *path,
+unsigned long cuckoo_lookup(struct cuckoo *cuckoo, const char *key,
 	int length)
 {
 	unsigned long hashcode, hashcode1, hashcode2;
@@ -118,8 +118,8 @@ unsigned long cuckoo_lookup(struct cuckoo *cuckoo, const char *path,
 	if (root == NULL || level == 0)
 		return 0;
 
-	hashcode1 = hash_func1(path, length);
-	hashcode2 = hash_func2(path, length);
+	hashcode1 = hash_func1(key, length);
+	hashcode2 = hash_func2(key, length);
 	tag = hashcode2 & TAG_MASK;
 
 	/* Tag must be non-zero */
@@ -211,7 +211,7 @@ static inline int slot_insert(struct cuckoo_slot *slot, unsigned int tag,
 }
 
 /* Return 0 on success */
-int cuckoo_insert(struct cuckoo *cuckoo, const char *path,
+int cuckoo_insert(struct cuckoo *cuckoo, const char *key,
 	int length, unsigned long value)
 {
 	unsigned long hashcode, hashcode1, hashcode2;
@@ -224,8 +224,8 @@ int cuckoo_insert(struct cuckoo *cuckoo, const char *path,
 	if (cuckoo->count >= cuckoo->size * 9 / 10)
 		cuckoo_expand(cuckoo);
 
-	hashcode1 = hash_func1(path, length);
-	hashcode2 = hash_func2(path, length);
+	hashcode1 = hash_func1(key, length);
+	hashcode2 = hash_func2(key, length);
 	tag = hashcode2 & TAG_MASK;
 
 	/* Tag must be non-zero */
