@@ -280,6 +280,8 @@ static int cuckoo_kickout(struct cuckoo *cuckoo, struct cuckoo_slot *slot,
 		count++;
 	}
 
+	printf("%s: count %lu, size %lu, kickout %d\n",
+			__func__, cuckoo->count, cuckoo->size, count);
 	return count;
 }
 
@@ -324,15 +326,37 @@ retry:
 	return -ENOMEM;
 }
 
-struct cuckoo *new_cuckoo(void) {
-	struct cuckoo *ret = malloc(sizeof(struct cuckoo));
+struct cuckoo *new_cuckoo(int height) {
+	struct cuckoo *cuckoo = malloc(sizeof(struct cuckoo));
+	unsigned long size = 1;
+	int i;
 
-	ret->root = NULL;
-	ret->size = 0;
-	ret->count = 0;
-	ret->height = 0;
+	if (!cuckoo)
+		return NULL;
 
-	return ret;
+	cuckoo->count = 0;
+	if (height <= 0) {
+		cuckoo->root = NULL;
+		cuckoo->size = 0;
+		cuckoo->height = 0;
+		return cuckoo;
+	}
+
+	cuckoo->root = malloc(sizeof(struct cuckoo_leaf));
+	if (!cuckoo->root) {
+		free(cuckoo);
+		return NULL;
+	}
+
+	memset(cuckoo->root, 0, sizeof(struct cuckoo_leaf));
+
+	for (i = 0; i < height; i++)
+		size *= 512;
+
+	cuckoo->height = height;
+	cuckoo->size = size;
+
+	return cuckoo;
 }
 
 static void cuckoo_free_tree(void *root, int height) {

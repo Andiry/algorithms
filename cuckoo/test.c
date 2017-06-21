@@ -8,7 +8,7 @@ int main(void) {
 	int i;
 	char str[10];
 
-	cuckoo = new_cuckoo();
+	cuckoo = new_cuckoo(0);
 
 	cuckoo_insert(cuckoo, key, strlen(key), 123);
 	value = cuckoo_lookup(cuckoo, key, strlen(key));
