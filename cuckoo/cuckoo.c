@@ -362,30 +362,35 @@ struct cuckoo *new_cuckoo(int height) {
 	return cuckoo;
 }
 
-static void cuckoo_free_tree(void *root, int height) {
+static int cuckoo_free_tree(void *root, int height) {
 	struct cuckoo_internal *node;
 	int i;
+	int ret = 1;
 
 	if (!root || height == 0)
-		return;
+		return 0;
 
 	if (height == 1) {
 		/* Leaf */
 		free(root);
-		return;
+		return ret;
 	}
 
 	/* Internal node */
 	node = (struct cuckoo_internal *)root;
 	for (i = 0; i < 512; i++)
-		cuckoo_free_tree((void *)node->pointers[i], height - 1);
+		ret += cuckoo_free_tree((void *)node->pointers[i], height - 1);
 
 	free(root);
+	return ret;
 }
 
 void free_cuckoo(struct cuckoo *cuckoo) {
-	cuckoo_free_tree(cuckoo->root, cuckoo->height);
-	
+	int ret;
+
+	ret = cuckoo_free_tree(cuckoo->root, cuckoo->height);
+	printf("%s: free %d pages\n", __func__, ret);
+
 	free(cuckoo);
 }
 
