@@ -209,6 +209,7 @@ static int cuckoo_expand(struct cuckoo *cuckoo)
 		cuckoo->level++;
 	}
 
+	/* FIXME: rehash */
 	return 0;
 }
 
@@ -231,14 +232,14 @@ static inline int count_free(struct cuckoo_slot *slot)
 static inline int slot_insert(struct cuckoo_slot *slot, unsigned int tag,
 	unsigned long value)
 {
-	unsigned long insert_value = format_obj(tag, value);
+	unsigned long insert_obj = format_obj(tag, value);
 	unsigned long obj;
 	int i;
 
 	for (i = 0; i < 4; i++) {
 		obj = slot->objs[i];
 		if (GET_TAG(obj) == 0) {
-			slot->objs[i] = insert_value;
+			slot->objs[i] = insert_obj;
 			return 0;
 		}
 	}
@@ -246,15 +247,50 @@ static inline int slot_insert(struct cuckoo_slot *slot, unsigned int tag,
 	return -1;
 }
 
+static int cuckoo_kickout(struct cuckoo *cuckoo, struct cuckoo_slot *slot,
+	unsigned long hashcode, unsigned int tag, unsigned long value)
+{
+	unsigned long victim_obj;
+	unsigned int victim_tag;
+	unsigned long insert_obj;
+	int count = 0;
+
+	while (count < KICKOUT_LIMIT) {
+		if (count_free(slot) > 0) {
+			slot_insert(slot, tag, value);
+			break;
+		}
+
+		/* Select victim */
+		victim_obj = slot->objs[0];
+		victim_tag = GET_TAG(victim_obj);
+
+		/* Kickout */
+		insert_obj = format_obj(tag, value);
+		slot->objs[0] = insert_obj;
+
+		/* Find new slot */
+		tag = victim_tag;
+		value = GET_VALUE(victim_obj);
+		hashcode = hashcode ^ tag;
+		slot = find_slot(cuckoo, hashcode, 1);
+
+		count++;
+	}
+
+	return count;
+}
+
 /* Return 0 on success */
 int cuckoo_insert(struct cuckoo *cuckoo, const char *key,
 	int length, unsigned long value)
 {
+	struct cuckoo_slot *slot1 = NULL, *slot2 = NULL;
 	unsigned long hashcode, hashcode1, hashcode2;
 	unsigned int tag;
 	void* root = cuckoo->root;
 	int level = cuckoo->level;
-	struct cuckoo_slot *slot1 = NULL, *slot2 = NULL;
+	int count;
 	unsigned long ret;
 
 	if (cuckoo->count >= cuckoo->size * 9 / 10)
@@ -267,7 +303,7 @@ int cuckoo_insert(struct cuckoo *cuckoo, const char *key,
 	/* Tag must be non-zero */
 	if (tag == 0)
 		tag = 1;
-
+retry:
 	hashcode = hashcode1;
 	slot1 = find_slot(cuckoo, hashcode, 1);
 	if (slot1 && count_free(slot1) > 0)
@@ -279,7 +315,12 @@ int cuckoo_insert(struct cuckoo *cuckoo, const char *key,
 	if (slot2 && count_free(slot2) > 0)
 		return slot_insert(slot2, tag, value);
 
-	/* FIXME: kickout */
+	count = cuckoo_kickout(cuckoo, slot2, hashcode, tag, value);
+	if (count >= KICKOUT_LIMIT) {
+		cuckoo_expand(cuckoo);
+		goto retry;
+	}
+
 	return -ENOMEM;
 }
 

@@ -15,6 +15,7 @@ struct cuckoo {
 };
 
 #define	PAGE_SIZE		4096
+#define	KICKOUT_LIMIT		500
 #define	SLOTS_PER_INTERNAL	512
 #define INTERNAL_BITS		9
 struct cuckoo_internal {
