@@ -342,6 +342,9 @@ struct cuckoo *new_cuckoo(int height) {
 		return cuckoo;
 	}
 
+	if (height > MAX_HEIGHT)
+		height = MAX_HEIGHT;
+
 	cuckoo->root = malloc(sizeof(struct cuckoo_leaf));
 	if (!cuckoo->root) {
 		free(cuckoo);
