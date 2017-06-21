@@ -83,8 +83,8 @@ static struct cuckoo_slot * find_slot(struct cuckoo *cuckoo,
 	return slot;
 }
 
-static unsigned long find_value(struct cuckoo_slot *slot,
-	unsigned int target_tag)
+static unsigned long find_value(struct cuckoo *cuckoo,
+	struct cuckoo_slot *slot, unsigned int target_tag)
 {
 	unsigned long value;
 	unsigned int tag;
@@ -105,8 +105,8 @@ static unsigned long find_value(struct cuckoo_slot *slot,
 	return 0;
 }
 
-static unsigned long clear_tag(struct cuckoo_slot *slot,
-	unsigned int target_tag)
+static unsigned long clear_tag(struct cuckoo *cuckoo,
+	struct cuckoo_slot *slot, unsigned int target_tag)
 {
 	unsigned long value;
 	unsigned int tag;
@@ -121,6 +121,7 @@ static unsigned long clear_tag(struct cuckoo_slot *slot,
 		if (tag == target_tag) {
 			/* FIXME: Check real value */
 			slot->objs[i] = 0;
+			cuckoo->count--;
 			break;
 		}
 	}
@@ -129,7 +130,7 @@ static unsigned long clear_tag(struct cuckoo_slot *slot,
 }
 
 static unsigned long cuckoo_lookup_delete(struct cuckoo *cuckoo,
-	unsigned long (*p)(struct cuckoo_slot *, unsigned int),
+	unsigned long (*p)(struct cuckoo *, struct cuckoo_slot *, unsigned int),
 	const char *key, int length)
 {
 	unsigned long hashcode, hashcode1, hashcode2;
@@ -153,7 +154,7 @@ static unsigned long cuckoo_lookup_delete(struct cuckoo *cuckoo,
 	hashcode = hashcode1;
 	slot = find_slot(cuckoo, hashcode, 0);
 	if (slot) {
-		ret = p(slot, tag);
+		ret = p(cuckoo, slot, tag);
 		if (ret)
 			return ret;
 	}
@@ -162,7 +163,7 @@ static unsigned long cuckoo_lookup_delete(struct cuckoo *cuckoo,
 	hashcode = hashcode1 ^ tag;
 	slot = find_slot(cuckoo, hashcode, 0);
 	if (slot) {
-		ret = p(slot, tag);
+		ret = p(cuckoo, slot, tag);
 		if (ret)
 			return ret;
 	}
@@ -195,7 +196,7 @@ static int cuckoo_expand(struct cuckoo *cuckoo)
 			return -ENOMEM;
 
 		memset(cuckoo->root, 0, sizeof(struct cuckoo_leaf));
-		cuckoo->size = 128;
+		cuckoo->size = 512;
 		cuckoo->level = 1;
 	} else {
 		new_root = malloc(sizeof(struct cuckoo_internal));
@@ -229,8 +230,8 @@ static inline int count_free(struct cuckoo_slot *slot)
 }
 
 /* Return 0 on success */
-static inline int slot_insert(struct cuckoo_slot *slot, unsigned int tag,
-	unsigned long value)
+static inline int slot_insert(struct cuckoo *cuckoo,
+	struct cuckoo_slot *slot, unsigned int tag, unsigned long value)
 {
 	unsigned long insert_obj = format_obj(tag, value);
 	unsigned long obj;
@@ -240,6 +241,7 @@ static inline int slot_insert(struct cuckoo_slot *slot, unsigned int tag,
 		obj = slot->objs[i];
 		if (GET_TAG(obj) == 0) {
 			slot->objs[i] = insert_obj;
+			cuckoo->count++;
 			return 0;
 		}
 	}
@@ -257,7 +259,7 @@ static int cuckoo_kickout(struct cuckoo *cuckoo, struct cuckoo_slot *slot,
 
 	while (count < KICKOUT_LIMIT) {
 		if (count_free(slot) > 0) {
-			slot_insert(slot, tag, value);
+			slot_insert(cuckoo, slot, tag, value);
 			break;
 		}
 
@@ -307,13 +309,13 @@ retry:
 	hashcode = hashcode1;
 	slot1 = find_slot(cuckoo, hashcode, 1);
 	if (slot1 && count_free(slot1) > 0)
-		return slot_insert(slot1, tag, value);
+		return slot_insert(cuckoo, slot1, tag, value);
 
 	/* Check alternate slot */
 	hashcode = hashcode1 ^ tag;
 	slot2 = find_slot(cuckoo, hashcode, 1);
 	if (slot2 && count_free(slot2) > 0)
-		return slot_insert(slot2, tag, value);
+		return slot_insert(cuckoo, slot2, tag, value);
 
 	count = cuckoo_kickout(cuckoo, slot2, hashcode, tag, value);
 	if (count >= KICKOUT_LIMIT) {
