@@ -16,14 +16,70 @@ static inline unsigned long BKDRHash(const char *str, int length,
 	return hash;
 }
 
+static inline unsigned long djb_hashl(const char *str, int length)
+{
+	unsigned long hash = 0;
+	int i;
+
+	for (i = 0; i < length; i++) {
+		hash = ((hash << 5) + hash) ^ (*str++);
+	}
+
+	return hash;
+}
+
+static inline unsigned long murmur_hash_64(const char *str, int len,
+	unsigned long seed)
+{
+	const unsigned long m = 0xc6a4a7935bd1e995ULL;
+	const int r = 47;
+
+	unsigned long h = seed ^ (len * m);
+
+	const unsigned long * data = (const unsigned long *)str;
+	const unsigned long * end = data + (len / 8);
+
+        while (data != end) {
+		unsigned long k = *data++;
+		k *= m;
+		k ^= k >> r;
+		k *= m;
+
+		h ^= k;
+		h *= m;
+	}
+
+	const unsigned char * data2 = (const unsigned char*)data;
+	switch (len & 7) {
+		case 7: h ^= (unsigned long)(data2[6]) << 48;
+		case 6: h ^= (unsigned long)(data2[5]) << 40;
+		case 5: h ^= (unsigned long)(data2[4]) << 32;
+		case 4: h ^= (unsigned long)(data2[3]) << 24;
+		case 3: h ^= (unsigned long)(data2[2]) << 16;
+		case 2: h ^= (unsigned long)(data2[1]) << 8;
+		case 1: h ^= (unsigned long)(data2[0]);
+		h *= m;
+	};
+
+	h ^= h >> r;
+	h *= m;
+	h ^= h >> r;
+
+	return h;
+}
+
 static inline unsigned long hash_func1(const char *str, int length)
 {
-	return BKDRHash(str, length, 131);
+	return djb_hashl(str, length);
+//	return BKDRHash(str, length, 31);
+//	return murmur_hash_64(str, length, 131);
 }
 
 static inline unsigned long hash_func2(const char *str, int length)
 {
-	return BKDRHash(str, length, 31);
+	return murmur_hash_64(str, length, 31);
+//	return BKDRHash(str, length, 131);
+//	return djb_hashl(str, length);
 }
 
 /*
@@ -190,6 +246,9 @@ static int cuckoo_expand(struct cuckoo *cuckoo)
 {
 	struct cuckoo_internal *new_root;
 
+	printf("%s: count %lu, size %lu, height %d\n",
+			__func__, cuckoo->count, cuckoo->size, cuckoo->height);
+
 	if (cuckoo->height == 0) {
 		cuckoo->root = malloc(sizeof(struct cuckoo_leaf));
 		if (!cuckoo->root)
@@ -280,8 +339,8 @@ static int cuckoo_kickout(struct cuckoo *cuckoo, struct cuckoo_slot *slot,
 		count++;
 	}
 
-	printf("%s: count %lu, size %lu, kickout %d\n",
-			__func__, cuckoo->count, cuckoo->size, count);
+//	printf("%s: count %lu, size %lu, kickout %d\n",
+//			__func__, cuckoo->count, cuckoo->size, count);
 	return count;
 }
 
@@ -388,6 +447,8 @@ static int cuckoo_free_tree(void *root, int height) {
 void free_cuckoo(struct cuckoo *cuckoo) {
 	int ret;
 
+	printf("cuckoo count %lu, size %lu, height %d\n",
+			cuckoo->count, cuckoo->size, cuckoo->height);
 	ret = cuckoo_free_tree(cuckoo->root, cuckoo->height);
 	printf("%s: free %d pages\n", __func__, ret);
 
